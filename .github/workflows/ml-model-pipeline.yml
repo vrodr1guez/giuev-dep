@@ -1,0 +1,400 @@
+name: ML Model Training and Deployment
+
+on:
+  # Run on push to main branch
+  push:
+    branches: [main]
+    paths:
+      - 'app/ml/**'
+      - 'data/processed/**'
+      - 'data/features/**'
+      - '.github/workflows/ml-model-pipeline.yml'
+  
+  # Run when triggered manually
+  workflow_dispatch:
+    inputs:
+      force_retrain:
+        description: 'Force model retraining'
+        type: boolean
+        default: false
+      deploy_to_production:
+        description: 'Auto-deploy to production'
+        type: boolean
+        default: false
+      model_name:
+        description: 'Model to retrain (leave empty for all)'
+        type: string
+        required: false
+      hyperparameter_tuning:
+        description: 'Run hyperparameter tuning'
+        type: boolean
+        default: false
+
+jobs:
+  validate-data:
+    name: Validate Data Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Run data validation
+        run: |
+          python -m app.ml.data_pipeline.data_validation \
+            --source data/processed \
+            --report data/validation_report.json
+      
+      - name: Check validation results
+        id: validation
+        run: |
+          python -c "
+          import json
+          with open('data/validation_report.json') as f:
+              report = json.load(f)
+          
+          if report['validation_passed']:
+              print('::set-output name=validation_passed::true')
+              print('✅ Data validation passed')
+          else:
+              print('::set-output name=validation_passed::false')
+              print('❌ Data validation failed')
+              print('Failures:')
+              for failure in report['failures']:
+                  print(f' - {failure}')
+              exit(1)
+          "
+      
+      - name: Upload validation report
+        uses: actions/upload-artifact@v3
+        with:
+          name: data-validation-report
+          path: data/validation_report.json
+  
+  train-models:
+    name: Train ML Models
+    needs: validate-data
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Initialize MLflow
+        run: |
+          mkdir -p mlruns
+          echo "MLFLOW_TRACKING_URI=file://$(pwd)/mlruns" >> $GITHUB_ENV
+      
+      - name: Initialize DVC
+        run: |
+          dvc init --no-scm
+          
+          # Configure DVC if needed for remote storage
+          if [ -n "${{ secrets.DVC_REMOTE_URL }}" ]; then
+            dvc remote add -d storage ${{ secrets.DVC_REMOTE_URL }}
+            
+            # Set up authentication if needed
+            if [ -n "${{ secrets.DVC_REMOTE_ACCESS_KEY }}" ]; then
+              dvc remote modify storage access_key_id ${{ secrets.DVC_REMOTE_ACCESS_KEY }}
+              dvc remote modify storage secret_access_key ${{ secrets.DVC_REMOTE_SECRET_KEY }}
+            fi
+            
+            # Pull data from remote
+            dvc pull -r storage
+          fi
+      
+      - name: Run hyperparameter tuning
+        if: ${{ github.event.inputs.hyperparameter_tuning == 'true' }}
+        run: |
+          # Extract model name from input or use all models
+          MODEL_NAME="${{ github.event.inputs.model_name }}"
+          if [ -z "$MODEL_NAME" ]; then
+            MODELS=("battery_health" "usage_prediction" "energy_price")
+          else
+            MODELS=("$MODEL_NAME")
+          fi
+          
+          # Run tuning for each model
+          for model in "${MODELS[@]}"; do
+            echo "Running hyperparameter tuning for $model"
+            python -m app.ml.training.hyperparameter_tuning \
+              --model-name $model \
+              --n-trials 30 \
+              --study-name "${model}_tuning" \
+              --output-dir "data/models/$model/tuning"
+          done
+      
+      - name: Train models
+        id: training
+        run: |
+          # Extract inputs
+          FORCE_RETRAIN="${{ github.event.inputs.force_retrain == 'true' }}"
+          AUTO_DEPLOY="${{ github.event.inputs.deploy_to_production == 'true' }}"
+          MODEL_NAME="${{ github.event.inputs.model_name }}"
+          
+          # Set up options
+          OPTIONS=""
+          if [ "$FORCE_RETRAIN" = "true" ]; then
+            OPTIONS="$OPTIONS --force-retrain"
+          fi
+          
+          if [ "$AUTO_DEPLOY" = "true" ]; then
+            OPTIONS="$OPTIONS --auto-deploy"
+          fi
+          
+          if [ -n "$MODEL_NAME" ]; then
+            OPTIONS="$OPTIONS --model-name $MODEL_NAME"
+          fi
+          
+          # Run training
+          python -m app.ml.training.train_models $OPTIONS
+          
+          # Check training results
+          if [ -f "data/training_results.json" ]; then
+            # Extract results for output
+            RESULT=$(python -c "
+            import json
+            with open('data/training_results.json') as f:
+                results = json.load(f)
+            
+            success_count = 0
+            total_count = len(results['models'])
+            
+            for model, info in results['models'].items():
+                if info['status'] == 'success':
+                    success_count += 1
+                    print(f'✅ {model}: Success')
+                else:
+                    print(f'❌ {model}: {info.get(\"message\", \"Failed\")}')
+            
+            print(f'\n{success_count}/{total_count} models trained successfully')
+            
+            # Set output
+            print(f'::set-output name=models_trained::{success_count}')
+            print(f'::set-output name=total_models::{total_count}')
+            
+            # Exit with error if any models failed
+            if success_count < total_count:
+                exit(1)
+            ")
+            
+            echo "$RESULT"
+          else
+            echo "❌ No training results found"
+            exit 1
+          fi
+      
+      - name: Upload MLflow runs
+        uses: actions/upload-artifact@v3
+        with:
+          name: mlflow-runs
+          path: mlruns/
+      
+      - name: Upload model artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-artifacts
+          path: |
+            data/models/
+            data/training_results.json
+  
+  test-models:
+    name: Test Model Performance
+    needs: train-models
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Download model artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: model-artifacts
+          path: data/
+      
+      - name: Run model performance tests
+        id: model_tests
+        run: |
+          # Run performance tests on trained models
+          python -m app.ml.testing.test_models \
+            --report-path data/model_performance_report.json
+          
+          # Check test results
+          python -c "
+          import json
+          with open('data/model_performance_report.json') as f:
+              report = json.load(f)
+          
+          print(f'Model Performance Summary:')
+          all_passed = True
+          
+          for model, metrics in report['models'].items():
+              if metrics['validation_passed']:
+                  status = '✅'
+              else:
+                  status = '❌'
+                  all_passed = False
+              
+              print(f'{status} {model}:')
+              for metric_name, value in metrics['metrics'].items():
+                  threshold = metrics['thresholds'].get(metric_name, 'N/A')
+                  print(f'   - {metric_name}: {value:.4f} (threshold: {threshold})')
+          
+          if not all_passed:
+              print(f'❌ Some models did not meet performance thresholds')
+              exit(1)
+          else:
+              print(f'✅ All models passed performance thresholds')
+          "
+      
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-performance-report
+          path: data/model_performance_report.json
+  
+  deploy-models:
+    name: Deploy Models
+    needs: test-models
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.deploy_to_production == 'true' && 'production' || 'staging' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Download model artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: model-artifacts
+          path: data/
+      
+      - name: Deploy models
+        id: deploy
+        env:
+          # Add necessary credentials for deployment
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          # For container registry
+          CONTAINER_REGISTRY: ${{ secrets.CONTAINER_REGISTRY }}
+        run: |
+          # Deploy to the appropriate environment based on workflow input
+          ENVIRONMENT="${{ github.event.inputs.deploy_to_production == 'true' && 'production' || 'staging' }}"
+          
+          # Extract model name from input if specified
+          MODEL_NAME="${{ github.event.inputs.model_name }}"
+          MODEL_ARGS=""
+          if [ -n "$MODEL_NAME" ]; then
+            MODEL_ARGS="--model-name $MODEL_NAME"
+          fi
+          
+          # Deploy the models
+          python -m app.ml.deployment.deploy_models \
+            --environment $ENVIRONMENT \
+            $MODEL_ARGS \
+            --report-path data/deployment_report.json
+          
+          # Output the deployment results
+          python -c "
+          import json
+          with open('data/deployment_report.json') as f:
+              report = json.load(f)
+          
+          print(f'Deployment Report for {report[\"environment\"]} environment:')
+          
+          for model, info in report['models'].items():
+              if info['success']:
+                  status = '✅'
+              else:
+                  status = '❌'
+              
+              print(f'{status} {model}: {info.get(\"message\", \"\")}')
+              print(f'   - Version: {info.get(\"version\", \"N/A\")}')
+              print(f'   - Endpoint: {info.get(\"endpoint\", \"N/A\")}')
+          
+          if report['all_succeeded']:
+              print(f'✅ All deployments succeeded')
+          else:
+              print(f'❌ Some deployments failed')
+              exit(1)
+          "
+      
+      - name: Upload deployment report
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-report
+          path: data/deployment_report.json
+      
+      - name: Send notification on success
+        if: success()
+        run: |
+          # Send notification about successful deployment
+          # This could be a webhook, email, Slack message, etc.
+          if [[ "${{ github.event.inputs.deploy_to_production }}" == "true" ]]; then
+            echo "Models successfully deployed to production"
+            # Add notification command here
+          else
+            echo "Models successfully deployed to staging"
+            # Add notification command here
+          fi
+      
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          # Send notification about failed deployment
+          echo "Model deployment failed, please check the logs"
+          # Add notification command here 

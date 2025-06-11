@@ -1,0 +1,278 @@
+{
+  "@context": "dtmi:dtdl:context;2",
+  "@id": "dtmi:evcharging:ChargingStation;1",
+  "@type": "Interface",
+  "displayName": "Charging Station",
+  "description": "Digital twin model for OCPP-compliant charging station",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "chargePointId",
+      "schema": "string",
+      "displayName": "Charge Point ID",
+      "description": "Unique identifier for the charging station"
+    },
+    {
+      "@type": "Property",
+      "name": "vendor",
+      "schema": "string",
+      "displayName": "Vendor",
+      "description": "Charging station manufacturer"
+    },
+    {
+      "@type": "Property",
+      "name": "model",
+      "schema": "string",
+      "displayName": "Model",
+      "description": "Charging station model"
+    },
+    {
+      "@type": "Property",
+      "name": "serialNumber",
+      "schema": "string",
+      "displayName": "Serial Number",
+      "description": "Device serial number"
+    },
+    {
+      "@type": "Property",
+      "name": "firmwareVersion",
+      "schema": "string",
+      "displayName": "Firmware Version",
+      "description": "Current firmware version"
+    },
+    {
+      "@type": "Property",
+      "name": "ocppVersion",
+      "schema": "string",
+      "displayName": "OCPP Version",
+      "description": "Supported OCPP protocol version (1.6, 2.0.1)"
+    },
+    {
+      "@type": "Property",
+      "name": "maxPowerKW",
+      "schema": "double",
+      "displayName": "Max Power (kW)",
+      "description": "Maximum charging power in kW"
+    },
+    {
+      "@type": "Property",
+      "name": "numberOfConnectors",
+      "schema": "integer",
+      "displayName": "Number of Connectors",
+      "description": "Total number of charging connectors"
+    },
+    {
+      "@type": "Property",
+      "name": "latitude",
+      "schema": "double",
+      "displayName": "Latitude",
+      "description": "GPS latitude coordinate"
+    },
+    {
+      "@type": "Property",
+      "name": "longitude",
+      "schema": "double",
+      "displayName": "Longitude", 
+      "description": "GPS longitude coordinate"
+    },
+    {
+      "@type": "Property",
+      "name": "address",
+      "schema": "string",
+      "displayName": "Address",
+      "description": "Physical address of the charging station"
+    },
+    {
+      "@type": "Property",
+      "name": "status",
+      "schema": {
+        "@type": "Enum",
+        "valueSchema": "string",
+        "enumValues": [
+          {
+            "name": "Available",
+            "enumValue": "Available"
+          },
+          {
+            "name": "Preparing",
+            "enumValue": "Preparing"
+          },
+          {
+            "name": "Charging",
+            "enumValue": "Charging"
+          },
+          {
+            "name": "SuspendedEVSE",
+            "enumValue": "SuspendedEVSE"
+          },
+          {
+            "name": "SuspendedEV",
+            "enumValue": "SuspendedEV"
+          },
+          {
+            "name": "Finishing",
+            "enumValue": "Finishing"
+          },
+          {
+            "name": "Reserved",
+            "enumValue": "Reserved"
+          },
+          {
+            "name": "Unavailable",
+            "enumValue": "Unavailable"
+          },
+          {
+            "name": "Faulted",
+            "enumValue": "Faulted"
+          }
+        ]
+      },
+      "displayName": "Status",
+      "description": "Current operational status of the charging station"
+    },
+    {
+      "@type": "Property",
+      "name": "isOnline",
+      "schema": "boolean",
+      "displayName": "Is Online",
+      "description": "Whether the charging station is connected and online"
+    },
+    {
+      "@type": "Property",
+      "name": "connectedVehicles",
+      "schema": "integer",
+      "displayName": "Connected Vehicles",
+      "description": "Number of currently connected vehicles"
+    },
+    {
+      "@type": "Property",
+      "name": "totalEnergyDelivered",
+      "schema": "double",
+      "displayName": "Total Energy Delivered (kWh)",
+      "description": "Cumulative energy delivered since installation"
+    },
+    {
+      "@type": "Property",
+      "name": "lastSeen",
+      "schema": "dateTime",
+      "displayName": "Last Seen",
+      "description": "Timestamp of last communication with central system"
+    },
+    {
+      "@type": "Property",
+      "name": "createdAt",
+      "schema": "dateTime",
+      "displayName": "Created At",
+      "description": "Timestamp when digital twin was created"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "powerOutput",
+      "schema": "double",
+      "displayName": "Current Power Output (kW)",
+      "description": "Real-time power output"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "energyDelivered",
+      "schema": "double",
+      "displayName": "Energy Delivered (kWh)",
+      "description": "Energy delivered in current session"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "efficiency",
+      "schema": "double",
+      "displayName": "Efficiency (%)",
+      "description": "Current charging efficiency percentage"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "temperature",
+      "schema": "double",
+      "displayName": "Ambient Temperature (°C)",
+      "description": "Environmental temperature at station location"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "networkLatency",
+      "schema": "double",
+      "displayName": "Network Latency (ms)",
+      "description": "Network communication latency"
+    },
+    {
+      "@type": "Relationship",
+      "name": "hasConnector",
+      "target": "dtmi:evcharging:Connector;1",
+      "displayName": "Has Connector",
+      "description": "Relationship to individual charging connectors"
+    },
+    {
+      "@type": "Relationship",
+      "name": "servesVehicle",
+      "target": "dtmi:evcharging:Vehicle;1",
+      "displayName": "Serves Vehicle",
+      "description": "Relationship to currently connected vehicles"
+    },
+    {
+      "@type": "Command",
+      "name": "startTransaction",
+      "displayName": "Start Transaction",
+      "description": "Command to start a charging transaction",
+      "request": {
+        "name": "connectorId",
+        "schema": "integer",
+        "description": "Connector ID to start transaction on"
+      },
+      "response": {
+        "name": "transactionId",
+        "schema": "string",
+        "description": "Unique transaction identifier"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "stopTransaction",
+      "displayName": "Stop Transaction",
+      "description": "Command to stop a charging transaction",
+      "request": {
+        "name": "transactionId",
+        "schema": "string",
+        "description": "Transaction ID to stop"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "unlockConnector",
+      "displayName": "Unlock Connector",
+      "description": "Command to unlock a specific connector",
+      "request": {
+        "name": "connectorId",
+        "schema": "integer",
+        "description": "Connector ID to unlock"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "reset",
+      "displayName": "Reset Station",
+      "description": "Command to reset the charging station",
+      "request": {
+        "name": "resetType",
+        "schema": "string",
+        "description": "Type of reset (Soft or Hard)"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "updateFirmware",
+      "displayName": "Update Firmware",
+      "description": "Command to update station firmware",
+      "request": {
+        "name": "downloadUrl",
+        "schema": "string",
+        "description": "URL to download firmware from"
+      }
+    }
+  ]
+} 

@@ -1,0 +1,21 @@
+import LiveDataStream from './components/demo/LiveDataStream';
+import WowFactorHero from './components/demo/WowFactorHero';
+import InteractiveAIDemo from './components/demo/InteractiveAIDemo';
+import CompetitorComparison from './components/demo/CompetitorComparison';
+import ROICalculator from './components/demo/ROICalculator';
+
+export default function HomePage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+      <LiveDataStream />
+      
+      <WowFactorHero />
+      
+      <InteractiveAIDemo />
+      
+      <CompetitorComparison />
+      
+      <ROICalculator />
+    </div>
+  );
+} 

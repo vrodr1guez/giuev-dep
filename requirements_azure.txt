@@ -1,0 +1,46 @@
+# Azure Digital Twins Integration Dependencies
+# Install with: pip install -r requirements_azure.txt
+
+# Core Azure Digital Twins SDK
+azure-digitaltwins-core==1.2.0
+
+# Azure authentication and identity
+azure-identity==1.14.0
+
+# Azure IoT Device SDK for device connectivity  
+azure-iot-device==2.12.0
+
+# Azure IoT Hub SDK for hub management
+azure-iot-hub==2.6.1
+
+# Azure Event Grid for real-time events
+azure-eventgrid==4.14.0
+
+# Azure Storage for blob storage and queues
+azure-storage-blob==12.19.0
+azure-storage-queue==12.8.0
+
+# Azure Key Vault for secure credential storage
+azure-keyvault-secrets==4.7.0
+
+# Azure Monitor for logging and telemetry
+azure-monitor-opentelemetry==1.1.1
+
+# Azure Service Bus for messaging (optional)
+azure-servicebus==7.11.3
+
+# Azure Cosmos DB for document storage (optional)
+azure-cosmos==4.5.1
+
+# Additional Azure core libraries
+azure-core==1.29.5
+azure-common==1.1.28
+
+# Optional: Azure Machine Learning integration
+# azure-ai-ml==1.11.1
+
+# Optional: Azure Functions runtime (if using serverless functions)
+# azure-functions==1.18.0
+
+# Optional: Azure Application Insights
+# opencensus-ext-azure==1.1.13 

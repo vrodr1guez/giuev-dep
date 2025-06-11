@@ -1,0 +1,10 @@
+{
+  "models": [
+    {
+      "model_id": "battery_health",
+      "model_type": "battery_health",
+      "last_updated": "2025-06-08T02:05:45.416714"
+    }
+  ],
+  "last_updated": "2025-06-08T02:05:45.416720"
+}

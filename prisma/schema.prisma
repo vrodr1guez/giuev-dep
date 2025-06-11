@@ -1,0 +1,253 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Form Models for Contact and Demo Scheduling
+model ContactSubmission {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  email        String   @db.VarChar(255)
+  company      String   @db.VarChar(200)
+  role         String?  @db.VarChar(100)
+  phone        String?  @db.VarChar(20)
+  message      String   @db.Text
+  inquiryType  String   @db.VarChar(50)
+  status       String   @default("pending") @db.VarChar(20) // pending, responded, closed
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assignedTo   String?  @db.Uuid
+  responseTime DateTime?
+
+  @@index([status])
+  @@index([inquiryType])
+  @@index([createdAt])
+  @@map("contact_submissions")
+}
+
+model DemoSchedule {
+  id              String   @id @default(uuid())
+  firstName       String   @db.VarChar(50)
+  lastName        String   @db.VarChar(50)
+  email           String   @db.VarChar(255)
+  company         String   @db.VarChar(200)
+  phone           String?  @db.VarChar(20)
+  role            String?  @db.VarChar(50)
+  companySize     String?  @db.VarChar(20)
+  scheduledDate   DateTime
+  scheduledTime   String   @db.VarChar(10)
+  interests       String[]
+  message         String?  @db.Text
+  status          String   @default("scheduled") @db.VarChar(20) // scheduled, completed, cancelled, rescheduled
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  meetingLink     String?  @db.Text
+  reminderSent    Boolean  @default(false)
+
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([createdAt])
+  @@map("demo_schedules")
+}
+
+model ChargingStation {
+  id               String             @id @default(uuid())
+  name             String
+  latitude         Float
+  longitude        Float
+  address          String
+  provider         String
+  isPublic         Boolean           @default(true)
+  operatingHours   String
+  contactPhone     String
+  externalNetworkId String?
+  connectors       ChargingConnector[]
+  powerCapacity    Float
+  currentLoad      Float             @default(0)
+  status           String            @default("operational")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model ChargingConnector {
+  id               String           @id @default(uuid())
+  stationId        String
+  station          ChargingStation @relation(fields: [stationId], references: [id])
+  type             String
+  powerOutput      Float
+  status           String          @default("available")
+  pricePerKwh      Float
+  lastStatusUpdate DateTime        @default(now())
+  sessions         ChargingSession[]
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([stationId])
+}
+
+model ChargingSession {
+  id              String            @id @default(uuid())
+  connectorId     String
+  connector       ChargingConnector @relation(fields: [connectorId], references: [id])
+  userId          String
+  startTime       DateTime          @default(now())
+  endTime         DateTime?
+  energyDelivered Float?
+  totalCost       Float?
+  paymentStatus   String            @default("pending")
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  payment         Payment?
+
+  @@index([connectorId])
+  @@index([userId])
+}
+
+model Payment {
+  id              String           @id @default(uuid())
+  sessionId       String           @unique
+  amount          Float
+  currency        String
+  status          String // Enum handled in application layer
+  paymentMethod   String
+  customerToken   String
+  transactionId   String?
+  errorMessage    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  session         ChargingSession  @relation(fields: [sessionId], references: [id])
+
+  @@index([status])
+  @@index([transactionId])
+}
+
+model DrivingEvent {
+  id            Int       @id @default(autoincrement())
+  vehicleId     Int
+  driverId      Int?
+  eventType     String    // e.g., harsh_acceleration, harsh_braking, speeding, excessive_idling
+  timestamp     DateTime  @db.Timestamptz
+  latitude      Float?
+  longitude     Float?
+  severityScore Float?    // 0-100, higher is worse
+  value         Float?    // e.g., speed value if speeding, g-force if harsh event
+  contextData   Json?     // e.g., speed_limit, road_conditions
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  vehicle       Vehicle   @relation(fields: [vehicleId], references: [id])
+  driver        User?     @relation(fields: [driverId], references: [id])
+
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([eventType])
+  @@index([timestamp])
+}
+
+model CoachingTip {
+  id              Int       @id @default(autoincrement())
+  tipId           String    @unique // e.g., CA001
+  category        String    // e.g., energy_saving, safety, battery_longevity
+  title           String
+  description     String
+  severity        String    @default("info") // info, warning, recommendation
+  relatedEventType String?
+  createdAt       DateTime  @default(now()) @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @db.Timestamptz
+
+  @@index([category])
+  @@index([relatedEventType])
+}
+
+model DriverFeedback {
+  id                      Int       @id @default(autoincrement())
+  driverId               Int
+  periodStartDate        DateTime  @db.Date
+  periodEndDate          DateTime  @db.Date
+  overallEfficiencyScore Float?
+  safetyScore            Float?
+  energySavedEstimateKwh Float?
+  keyEventsSummary       Json?
+  personalizedTips       Json?
+  comparisonToFleetAverage Json?
+  createdAt              DateTime  @default(now()) @db.Timestamptz
+  updatedAt              DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  driver                 User      @relation(fields: [driverId], references: [id])
+
+  @@index([driverId])
+  @@index([periodStartDate, periodEndDate])
+}
+
+model FleetEnergyReport {
+  id                          Int       @id @default(autoincrement())
+  organizationId             Int
+  reportPeriodStart         DateTime  @db.Date
+  reportPeriodEnd           DateTime  @db.Date
+  totalEnergyConsumedKwh    Float
+  totalDistanceDrivenKm     Float
+  averageFleetEfficiencyKwhPerKm Float
+  totalChargingCost         Float?
+  totalV2gRevenue           Float?
+  energyConsumptionByVehicleType Json?
+  energyConsumptionTrends   Json?
+  optimizationSuggestions   Json?
+  createdAt                 DateTime  @default(now()) @db.Timestamptz
+  updatedAt                 DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  organization              Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([reportPeriodStart, reportPeriodEnd])
+}
+
+model EnergyOptimizationScenario {
+  id                      Int       @id @default(autoincrement())
+  organizationId         Int
+  scenarioType           String    // e.g., off_peak_charging_shift, route_optimization_impact
+  parameters             Json
+  estimatedEnergySavingsKwh Float
+  estimatedCostSavings   Float
+  assumptions            Json
+  confidenceLevel        String    @default("medium")
+  createdAt             DateTime  @default(now()) @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  organization          Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId])
+  @@index([scenarioType])
+}
+
+// Existing models referenced above
+model Organization {
+  id                    Int       @id @default(autoincrement())
+  name                  String
+  fleetEnergyReports   FleetEnergyReport[]
+  energyOptimizationScenarios EnergyOptimizationScenario[]
+  // ... other fields
+}
+
+model Vehicle {
+  id            Int       @id @default(autoincrement())
+  drivingEvents DrivingEvent[]
+  // ... other fields
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  drivingEvents DrivingEvent[]
+  driverFeedback DriverFeedback[]
+  // ... other fields
+} 

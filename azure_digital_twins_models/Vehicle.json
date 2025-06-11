@@ -1,0 +1,176 @@
+{
+  "@context": "dtmi:dtdl:context;2",
+  "@id": "dtmi:evcharging:Vehicle;1",
+  "@type": "Interface",
+  "displayName": "Electric Vehicle",
+  "description": "Digital twin model for electric vehicle with V2G capabilities",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "vehicleId",
+      "schema": "string",
+      "displayName": "Vehicle ID",
+      "description": "Unique identifier for the vehicle"
+    },
+    {
+      "@type": "Property",
+      "name": "make",
+      "schema": "string",
+      "displayName": "Make",
+      "description": "Vehicle manufacturer"
+    },
+    {
+      "@type": "Property",
+      "name": "model",
+      "schema": "string",
+      "displayName": "Model",
+      "description": "Vehicle model"
+    },
+    {
+      "@type": "Property",
+      "name": "year",
+      "schema": "integer",
+      "displayName": "Year",
+      "description": "Manufacturing year"
+    },
+    {
+      "@type": "Property",
+      "name": "batteryCapacity",
+      "schema": "double",
+      "displayName": "Battery Capacity (kWh)",
+      "description": "Total battery capacity in kWh"
+    },
+    {
+      "@type": "Property",
+      "name": "v2gCapable",
+      "schema": "boolean",
+      "displayName": "V2G Capable",
+      "description": "Whether vehicle supports Vehicle-to-Grid technology"
+    },
+    {
+      "@type": "Property",
+      "name": "v2gEnabled",
+      "schema": "boolean",
+      "displayName": "V2G Enabled",
+      "description": "Whether V2G is currently enabled"
+    },
+    {
+      "@type": "Property",
+      "name": "maxDischargeRateKW",
+      "schema": "double",
+      "displayName": "Max Discharge Rate (kW)",
+      "description": "Maximum power output for V2G operations"
+    },
+    {
+      "@type": "Property",
+      "name": "minSOCLimit",
+      "schema": "integer",
+      "displayName": "Min SOC Limit (%)",
+      "description": "Minimum state of charge to maintain during V2G"
+    },
+    {
+      "@type": "Property",
+      "name": "smartChargingEnabled",
+      "schema": "boolean",
+      "displayName": "Smart Charging Enabled",
+      "description": "Whether smart charging based on grid conditions is enabled"
+    },
+    {
+      "@type": "Property",
+      "name": "isActive",
+      "schema": "boolean",
+      "displayName": "Is Active",
+      "description": "Whether vehicle is currently active in the fleet"
+    },
+    {
+      "@type": "Property",
+      "name": "createdAt",
+      "schema": "dateTime",
+      "displayName": "Created At",
+      "description": "Timestamp when digital twin was created"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "location",
+      "schema": {
+        "@type": "Object",
+        "fields": [
+          {
+            "name": "latitude",
+            "schema": "double"
+          },
+          {
+            "name": "longitude", 
+            "schema": "double"
+          }
+        ]
+      },
+      "displayName": "GPS Location",
+      "description": "Current GPS coordinates of the vehicle"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "speed",
+      "schema": "double",
+      "displayName": "Speed (km/h)",
+      "description": "Current vehicle speed"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "odometer",
+      "schema": "double",
+      "displayName": "Odometer (km)",
+      "description": "Total distance traveled"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "energyConsumption",
+      "schema": "double",
+      "displayName": "Energy Consumption (kWh/100km)",
+      "description": "Current energy consumption rate"
+    },
+    {
+      "@type": "Relationship",
+      "name": "hasBattery",
+      "target": "dtmi:evcharging:Battery;1",
+      "displayName": "Has Battery",
+      "description": "Relationship to the vehicle's battery"
+    },
+    {
+      "@type": "Relationship", 
+      "name": "connectedToStation",
+      "target": "dtmi:evcharging:ChargingStation;1",
+      "displayName": "Connected to Station",
+      "description": "Relationship to currently connected charging station"
+    },
+    {
+      "@type": "Command",
+      "name": "startCharging",
+      "displayName": "Start Charging",
+      "description": "Command to start charging session",
+      "request": {
+        "name": "targetSOC",
+        "schema": "double",
+        "description": "Target state of charge for charging session"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "stopCharging",
+      "displayName": "Stop Charging",
+      "description": "Command to stop current charging session"
+    },
+    {
+      "@type": "Command",
+      "name": "enableV2G",
+      "displayName": "Enable V2G",
+      "description": "Command to enable Vehicle-to-Grid functionality"
+    },
+    {
+      "@type": "Command",
+      "name": "disableV2G",
+      "displayName": "Disable V2G", 
+      "description": "Command to disable Vehicle-to-Grid functionality"
+    }
+  ]
+} 

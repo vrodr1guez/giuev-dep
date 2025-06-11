@@ -1,0 +1,8 @@
+# Ignore raw and processed data
+/raw/**
+/processed/**
+/features/**
+
+# Do not ignore DVC files
+!*.dvc
+!.gitignore 

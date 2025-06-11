@@ -1,0 +1,538 @@
+name: ML Model CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'app/ml/**'
+      - 'requirements-ml.txt'
+      - '.github/workflows/ml-pipeline.yml'
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'app/ml/**'
+      - 'requirements-ml.txt'
+  workflow_dispatch:
+    inputs:
+      model_type:
+        description: 'Type of model to train'
+        required: true
+        default: 'battery_health'
+        type: choice
+        options:
+          - battery_health
+          - usage_prediction
+          - energy_price
+      force_rebuild:
+        description: 'Force model rebuild'
+        required: false
+        default: false
+        type: boolean
+      promote_to_staging:
+        description: 'Promote to staging after training'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  test:
+    name: Run ML Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+          pip install pytest pytest-cov
+      
+      - name: Run tests
+        run: |
+          mkdir -p test-results
+          python -m pytest app/ml/testing/ -v --junitxml=test-results/junit.xml --cov=app/ml --cov-report=xml
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: test-results/
+      
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: ml-models
+          fail_ci_if_error: false
+
+  train-models:
+    name: Train ML Models
+    needs: test
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Generate synthetic data
+        run: |
+          mkdir -p data/synthetic
+          python -c "
+import numpy as np
+import pandas as pd
+from datetime import datetime, timedelta
+
+# Battery Health Data
+timestamps = [datetime.now() - timedelta(days=i) for i in range(180, 0, -1)]
+data = []
+for vehicle_id in ['v1', 'v2', 'v3']:
+    for i, ts in enumerate(timestamps):
+        data.append({
+            'vehicle_id': vehicle_id,
+            'timestamp': ts,
+            'state_of_health': 100 - i/len(timestamps)*5 + np.random.normal(0, 0.5),
+            'state_of_charge': 70 + np.random.normal(0, 10),
+            'battery_temp': 25 + np.random.normal(0, 5),
+            'charge_cycles': i/3,
+            'odometer': 10000 + i*50,
+            'battery_chemistry': 'NMC',
+            'vehicle_type': 'sedan'
+        })
+pd.DataFrame(data).to_csv('data/synthetic/battery_data.csv', index=False)
+
+# Usage Prediction Data
+usage_data = []
+for vehicle_id in ['v1', 'v2', 'v3']:
+    for i in range(100):
+        start_time = datetime.now() - timedelta(days=i, hours=np.random.randint(0, 24))
+        duration = np.random.randint(30, 180)  # Minutes
+        end_time = start_time + timedelta(minutes=duration)
+        usage_data.append({
+            'vehicle_id': vehicle_id,
+            'start_time': start_time,
+            'end_time': end_time,
+            'trip_distance': np.random.randint(5, 50)
+        })
+pd.DataFrame(usage_data).to_csv('data/synthetic/usage_data.csv', index=False)
+
+# Energy Price Data
+hours = 24*30*3  # 3 months of hourly data
+timestamps = [datetime.now() - timedelta(hours=i) for i in range(hours, 0, -1)]
+price_data = []
+for ts in timestamps:
+    # Base price with time of day pattern
+    hour_factor = (ts.hour - 12)**2 / 50
+    day_factor = np.sin(ts.day / 30 * np.pi) * 5
+    base_price = 20 + hour_factor + day_factor
+    
+    # Add noise
+    noise = np.random.normal(0, 2)
+    
+    price_data.append({
+        'timestamp': ts,
+        'energy_price': base_price + noise,
+        'renewable_percentage': 30 + 20 * np.sin(ts.hour / 24 * 2 * np.pi) + np.random.normal(0, 5)
+    })
+pd.DataFrame(price_data).to_csv('data/synthetic/price_data.csv', index=False)
+          "
+      
+      - name: Determine model type to train
+        id: model_params
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "MODEL_TYPE=${{ github.event.inputs.model_type }}" >> $GITHUB_ENV
+            echo "FORCE_REBUILD=${{ github.event.inputs.force_rebuild }}" >> $GITHUB_ENV
+            echo "PROMOTE_TO_STAGING=${{ github.event.inputs.promote_to_staging }}" >> $GITHUB_ENV
+          else
+            echo "MODEL_TYPE=battery_health" >> $GITHUB_ENV
+            echo "FORCE_REBUILD=false" >> $GITHUB_ENV
+            echo "PROMOTE_TO_STAGING=false" >> $GITHUB_ENV
+          fi
+      
+      - name: Train Battery Health Model
+        if: ${{ env.MODEL_TYPE == 'battery_health' || env.MODEL_TYPE == 'all' }}
+        run: |
+          mkdir -p app/ml/models/battery_health
+          python -c "
+from app.ml.models.battery_health.battery_degradation_model import BatteryDegradationModel
+import pandas as pd
+  
+# Load data
+data = pd.read_csv('data/synthetic/battery_data.csv')
+data['timestamp'] = pd.to_datetime(data['timestamp'])
+  
+# Create and train model
+model = BatteryDegradationModel(
+    model_type='gradient_boosting',
+    model_version='ci-v1'
+)
+  
+# Train model
+results = model.train(
+    telemetry_data=data,
+    test_size=0.2
+)
+  
+# Save model
+model.save('app/ml/models/battery_health/battery_model_ci.joblib')
+  
+# Print metrics
+print(f'Model training complete!')
+print(f'RMSE: {results[\"metrics\"][\"rmse\"]:.4f}')
+print(f'R²: {results[\"metrics\"][\"r2\"]:.4f}')
+          "
+      
+      - name: Train Usage Prediction Model
+        if: ${{ env.MODEL_TYPE == 'usage_prediction' || env.MODEL_TYPE == 'all' }}
+        run: |
+          mkdir -p app/ml/models/usage_prediction
+          python -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd()))
+from app.ml.training.usage_prediction_training import UsagePredictionModel
+import pandas as pd
+  
+# Load data
+data = pd.read_csv('data/synthetic/usage_data.csv')
+data['start_time'] = pd.to_datetime(data['start_time'])
+data['end_time'] = pd.to_datetime(data['end_time'])
+  
+# Create and train model
+model = UsagePredictionModel(
+    model_type='gradient_boosting',
+    prediction_target='next_usage_time',
+    model_version='ci-v1'
+)
+  
+# Train model
+results = model.train(
+    usage_data=data,
+    test_size=0.2
+)
+  
+# Save model
+model.save('app/ml/models/usage_prediction/next_usage_time_gradient_boosting_ci-v1.joblib')
+  
+# Print metrics
+print(f'Model training complete!')
+print(f'RMSE: {results[\"metrics\"][\"rmse\"]:.4f}')
+if \"r2\" in results[\"metrics\"]:
+    print(f'R²: {results[\"metrics\"][\"r2\"]:.4f}')
+          "
+      
+      - name: Train Energy Price Model
+        if: ${{ env.MODEL_TYPE == 'energy_price' || env.MODEL_TYPE == 'all' }}
+        run: |
+          mkdir -p app/ml/models/energy_price
+          python -c "
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd()))
+from app.ml.training.energy_price_training import EnergyPricePredictionModel
+import pandas as pd
+  
+# Load data
+data = pd.read_csv('data/synthetic/price_data.csv')
+data['timestamp'] = pd.to_datetime(data['timestamp'])
+  
+# Create and train model
+model = EnergyPricePredictionModel(
+    model_type='gradient_boosting',
+    prediction_horizon=24,
+    model_version='ci-v1',
+    region='test-region'
+)
+  
+# Train model
+results = model.train(
+    price_data=data,
+    test_size=0.2
+)
+  
+# Save model
+model.save('app/ml/models/energy_price/price_prediction_24h_gradient_boosting_ci-v1.joblib')
+  
+# Print metrics
+print(f'Model training complete!')
+print(f'RMSE: {results[\"metrics\"][\"rmse\"]:.4f}')
+if \"r2\" in results[\"metrics\"]:
+    print(f'R²: {results[\"metrics\"][\"r2\"]:.4f}')
+          "
+      
+      - name: Upload trained models
+        uses: actions/upload-artifact@v3
+        with:
+          name: trained-models
+          path: app/ml/models/
+  
+  evaluate-models:
+    name: Evaluate ML Models
+    needs: train-models
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+      
+      - name: Download trained models
+        uses: actions/download-artifact@v3
+        with:
+          name: trained-models
+          path: app/ml/models/
+      
+      - name: Evaluate Models
+        run: |
+          # Create a directory for evaluation results
+          mkdir -p evaluation-results
+          
+          # Run evaluation script
+          python -c "
+import sys
+import json
+import os
+from datetime import datetime, timedelta
+from pathlib import Path
+
+# Add project root to Python path
+sys.path.insert(0, str(Path.cwd()))
+
+# Battery Health Model
+try:
+    from app.ml.models.battery_health.battery_degradation_model import BatteryDegradationModel
+    import pandas as pd
+    import numpy as np
+
+    # Create test data
+    timestamps = [datetime.now() - timedelta(days=i) for i in range(30, 0, -1)]
+    data = []
+    for vehicle_id in ['test1', 'test2']:
+        for i, ts in enumerate(timestamps):
+            data.append({
+                'vehicle_id': vehicle_id,
+                'timestamp': ts,
+                'state_of_health': 95 - i/len(timestamps)*3,
+                'state_of_charge': 80,
+                'battery_temp': 25,
+                'charge_cycles': i/5,
+                'odometer': 20000 + i*30,
+                'battery_chemistry': 'NMC',
+                'vehicle_type': 'sedan'
+            })
+    test_data = pd.DataFrame(data)
+    
+    # Load model
+    model = BatteryDegradationModel.load('app/ml/models/battery_health/battery_model_ci.joblib')
+    
+    # Evaluate
+    predictions = model.predict(test_data)
+    future_health = model.predict_future_health('test1', test_data, 90)
+    replacement_date = model.get_replacement_date('test1', test_data, 0.7, 3650)
+    
+    # Save results
+    results = {
+        'model_type': 'battery_health',
+        'evaluation_time': datetime.now().isoformat(),
+        'sample_predictions': predictions[:5].tolist(),
+        'future_health_slope': (future_health['predicted_soh'].iloc[-1] - future_health['predicted_soh'].iloc[0]) / len(future_health),
+        'replacement_date_info': {k: v for k, v in replacement_date.items() if k != 'vehicle_id'}
+    }
+    
+    with open('evaluation-results/battery_health_evaluation.json', 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    print('Battery Health model evaluation completed')
+except Exception as e:
+    print(f'Error evaluating Battery Health model: {str(e)}')
+
+# Usage Prediction Model
+try:
+    from app.ml.training.usage_prediction_training import UsagePredictionModel
+    from datetime import datetime, timedelta
+    
+    # Load model if it exists
+    model_path = 'app/ml/models/usage_prediction/next_usage_time_gradient_boosting_ci-v1.joblib'
+    if os.path.exists(model_path):
+        model = UsagePredictionModel.load(model_path)
+        print('Usage Prediction model loaded')
+        
+        # Create simple test data
+        test_data = pd.DataFrame([
+            {
+                'vehicle_id': 'test_vehicle',
+                'start_time': datetime.now() - timedelta(hours=48),
+                'end_time': datetime.now() - timedelta(hours=47),
+                'trip_distance': 15
+            },
+            {
+                'vehicle_id': 'test_vehicle',
+                'start_time': datetime.now() - timedelta(hours=24),
+                'end_time': datetime.now() - timedelta(hours=23),
+                'trip_distance': 12
+            }
+        ])
+        
+        # Try to predict
+        try:
+            if hasattr(model, 'predict'):
+                predictions = model.predict(test_data)
+                print('Usage Prediction model evaluation completed')
+                
+                with open('evaluation-results/usage_prediction_evaluation.json', 'w') as f:
+                    json.dump({
+                        'model_type': 'usage_prediction',
+                        'evaluation_time': datetime.now().isoformat(),
+                        'prediction_shape': list(predictions.shape) if hasattr(predictions, 'shape') else 'scalar'
+                    }, f, indent=2)
+        except Exception as e:
+            print(f'Error predicting with Usage Prediction model: {str(e)}')
+    else:
+        print('Usage Prediction model not found, skipping evaluation')
+except Exception as e:
+    print(f'Error loading Usage Prediction model: {str(e)}')
+
+# Energy Price Model
+try:
+    from app.ml.training.energy_price_training import EnergyPricePredictionModel
+    
+    # Load model if it exists
+    model_path = 'app/ml/models/energy_price/price_prediction_24h_gradient_boosting_ci-v1.joblib'
+    if os.path.exists(model_path):
+        model = EnergyPricePredictionModel.load(model_path)
+        print('Energy Price model loaded')
+        
+        # Create simple test data
+        test_data = pd.DataFrame([
+            {
+                'timestamp': datetime.now() - timedelta(hours=i),
+                'energy_price': 20 + i % 5,
+                'renewable_percentage': 30 + i % 10
+            } for i in range(48, 0, -1)
+        ])
+        
+        # Try to predict
+        try:
+            if hasattr(model, 'predict'):
+                predictions = model.predict(test_data)
+                print('Energy Price model evaluation completed')
+                
+                with open('evaluation-results/energy_price_evaluation.json', 'w') as f:
+                    json.dump({
+                        'model_type': 'energy_price',
+                        'evaluation_time': datetime.now().isoformat(),
+                        'prediction_length': len(predictions)
+                    }, f, indent=2)
+        except Exception as e:
+            print(f'Error predicting with Energy Price model: {str(e)}')
+    else:
+        print('Energy Price model not found, skipping evaluation')
+except Exception as e:
+    print(f'Error loading Energy Price model: {str(e)}')
+          "
+      
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v3
+        with:
+          name: model-evaluation-results
+          path: evaluation-results/
+      
+  deploy-models:
+    name: Deploy ML Models to Staging
+    needs: evaluate-models
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' && (github.event.inputs.promote_to_staging == 'true' || contains(github.event.head_commit.message, '[deploy-models]')) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-ml.txt
+          pip install boto3  # For S3 deployment
+      
+      - name: Download trained models
+        uses: actions/download-artifact@v3
+        with:
+          name: trained-models
+          path: app/ml/models/
+      
+      - name: Prepare models for deployment
+        run: |
+          # Create a directory for models to deploy
+          mkdir -p models-to-deploy
+          
+          # Copy models with version information
+          cp -r app/ml/models/battery_health/battery_model_ci.joblib models-to-deploy/battery_health_latest.joblib
+          
+          # Copy energy price model if it exists
+          if [ -f "app/ml/models/energy_price/price_prediction_24h_gradient_boosting_ci-v1.joblib" ]; then
+              cp app/ml/models/energy_price/price_prediction_24h_gradient_boosting_ci-v1.joblib models-to-deploy/energy_price_latest.joblib
+          fi
+          
+          # Copy usage prediction model if it exists
+          if [ -f "app/ml/models/usage_prediction/next_usage_time_gradient_boosting_ci-v1.joblib" ]; then
+              cp app/ml/models/usage_prediction/next_usage_time_gradient_boosting_ci-v1.joblib models-to-deploy/usage_prediction_latest.joblib
+          fi
+          
+          # Create a version file
+          echo "{\"deploy_timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\", \"commit\": \"${{ github.sha }}\", \"branch\": \"${{ github.ref_name }}\", \"workflow_run\": \"${{ github.run_id }}\"}" > models-to-deploy/version.json
+      
+      - name: Deploy models to S3 (mock)
+        run: |
+          echo "This is a mock deployment step"
+          echo "In a real workflow, you would deploy to S3 or another model registry"
+          echo "For example:"
+          echo "aws s3 sync models-to-deploy/ s3://your-model-bucket/staging/ --acl private"
+          
+          # For demo purposes, we'll just list what would be deployed
+          echo "Would deploy the following models:"
+          ls -la models-to-deploy/
+      
+      - name: Upload deployable models
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployable-models
+          path: models-to-deploy/ 

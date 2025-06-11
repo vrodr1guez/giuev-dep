@@ -1,0 +1,21 @@
+{
+  "aggregation_method": "fedavg",
+  "min_clients_per_round": 3,
+  "client_sample_rate": 0.8,
+  "rounds_per_global_update": 5,
+  "privacy": {
+    "differential_privacy": {
+      "enabled": true,
+      "noise_multiplier": 0.1,
+      "max_grad_norm": 1.0
+    },
+    "secure_aggregation": {
+      "enabled": true,
+      "method": "homomorphic"
+    }
+  },
+  "convergence_criteria": {
+    "min_improvement": 0.001,
+    "patience": 3
+  }
+}

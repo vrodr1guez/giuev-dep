@@ -1,0 +1,143 @@
+{
+  "@context": "dtmi:dtdl:context;2",
+  "@id": "dtmi:evcharging:Battery;1",
+  "@type": "Interface",
+  "displayName": "EV Battery",
+  "description": "Digital twin model for electric vehicle battery with advanced health monitoring",
+  "contents": [
+    {
+      "@type": "Property",
+      "name": "vehicleId",
+      "schema": "string",
+      "displayName": "Vehicle ID",
+      "description": "Identifier of the parent vehicle"
+    },
+    {
+      "@type": "Property",
+      "name": "batteryType",
+      "schema": "string",
+      "displayName": "Battery Type",
+      "description": "Type of battery (Li-ion, LiFePO4, etc.)"
+    },
+    {
+      "@type": "Property",
+      "name": "chemistry",
+      "schema": "string",
+      "displayName": "Battery Chemistry",
+      "description": "Chemical composition (NMC, LFP, etc.)"
+    },
+    {
+      "@type": "Property",
+      "name": "nominalCapacity",
+      "schema": "double",
+      "displayName": "Nominal Capacity (kWh)",
+      "description": "Original battery capacity in kWh"
+    },
+    {
+      "@type": "Property",
+      "name": "voltage",
+      "schema": "double",
+      "displayName": "Battery Voltage (V)",
+      "description": "Current battery voltage"
+    },
+    {
+      "@type": "Property",
+      "name": "current",
+      "schema": "double",
+      "displayName": "Battery Current (A)",
+      "description": "Current battery current (positive for charging, negative for discharging)"
+    },
+    {
+      "@type": "Property",
+      "name": "temperature",
+      "schema": "double",
+      "displayName": "Temperature (°C)",
+      "description": "Battery temperature in Celsius"
+    },
+    {
+      "@type": "Property",
+      "name": "soc",
+      "schema": "double",
+      "displayName": "State of Charge (%)",
+      "description": "State of charge percentage (0-100)"
+    },
+    {
+      "@type": "Property",
+      "name": "soh",
+      "schema": "double",
+      "displayName": "State of Health (%)",
+      "description": "State of health percentage (0-100)"
+    },
+    {
+      "@type": "Property",
+      "name": "thermalManagement",
+      "schema": "string",
+      "displayName": "Thermal Management",
+      "description": "Type of thermal management system"
+    },
+    {
+      "@type": "Property",
+      "name": "lastUpdated",
+      "schema": "dateTime",
+      "displayName": "Last Updated",
+      "description": "Timestamp of last property update"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "thermalRunawayRisk",
+      "schema": "double",
+      "displayName": "Thermal Runaway Risk",
+      "description": "Risk factor for thermal runaway (0-1)"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "dendriteGrowth",
+      "schema": "double",
+      "displayName": "Dendrite Growth Level",
+      "description": "Lithium dendrite growth level (0-1)"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "electrolyteDegaradation",
+      "schema": "double",
+      "displayName": "Electrolyte Degradation",
+      "description": "Electrolyte degradation level (0-1)"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "internalResistance",
+      "schema": "double",
+      "displayName": "Internal Resistance (Ω)",
+      "description": "Battery internal resistance in ohms"
+    },
+    {
+      "@type": "Telemetry",
+      "name": "powerCapability",
+      "schema": "double",
+      "displayName": "Power Capability (kW)",
+      "description": "Current power capability in kW"
+    },
+    {
+      "@type": "Command",
+      "name": "optimizeChargingProfile",
+      "displayName": "Optimize Charging Profile",
+      "description": "Command to optimize charging profile based on current conditions",
+      "request": {
+        "name": "targetSOC",
+        "schema": "double",
+        "description": "Target state of charge percentage"
+      },
+      "response": {
+        "name": "optimizedProfile",
+        "schema": "string",
+        "description": "Optimized charging profile recommendations"
+      }
+    },
+    {
+      "@type": "Command",
+      "name": "enableThermalManagement",
+      "displayName": "Enable Thermal Management",
+      "description": "Command to activate thermal management system"
+    }
+  ]
+} 

@@ -1,0 +1,492 @@
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* CSS Variables for Design System */
+@layer base {
+  :root {
+    /* Base Colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.75rem;
+
+    /* AXIOM Genesis Brand Variables */
+    --axiom-primary: 199 89% 48%;
+    --axiom-secondary: 293 69% 49%;
+    --genesis-primary: 293 69% 49%;
+    --quantum-primary: 160 84% 39%;
+    --neural-primary: 24 95% 53%;
+    
+    /* Animation Variables */
+    --animation-duration-fast: 200ms;
+    --animation-duration-normal: 300ms;
+    --animation-duration-slow: 500ms;
+    --animation-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Spacing Variables */
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-md: 1.5rem;
+    --spacing-lg: 2rem;
+    --spacing-xl: 3rem;
+    --spacing-2xl: 4rem;
+    
+    /* Typography Variables */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    --font-size-5xl: 3rem;
+    --font-size-6xl: 3.75rem;
+    
+    /* Shadow Variables */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    
+    /* Glass Effect Variables */
+    --glass-background: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-blur: 12px;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+    
+    /* Dark mode glass effects */
+    --glass-background: rgba(0, 0, 0, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography Scale */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-semibold;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl font-semibold;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl lg:text-3xl font-medium;
+  }
+
+  h5 {
+    @apply text-lg md:text-xl lg:text-2xl font-medium;
+  }
+
+  h6 {
+    @apply text-base md:text-lg lg:text-xl font-medium;
+  }
+
+  /* Code and monospace */
+  code {
+    @apply font-mono text-sm;
+  }
+
+  pre {
+    @apply font-mono text-sm overflow-x-auto;
+  }
+
+  /* Selection styles */
+  ::selection {
+    @apply bg-axiom-500/20 text-axiom-900;
+  }
+
+  .dark ::selection {
+    @apply bg-axiom-400/20 text-axiom-100;
+  }
+
+  /* Scrollbar styles */
+  ::-webkit-scrollbar {
+    @apply w-2 h-2;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border/80;
+  }
+
+  /* Focus styles */
+  .focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Remove default button styles */
+  button {
+    @apply outline-none;
+  }
+}
+
+/* Component Layer */
+@layer components {
+  /* Glass morphism effects */
+  .glass {
+    background: var(--glass-background);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+  }
+
+  .glass-intense {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .glass-intense {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Text gradient utilities */
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-axiom {
+    @apply bg-gradient-to-r from-axiom-600 via-genesis-600 to-axiom-800 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-quantum {
+    @apply bg-gradient-to-r from-quantum-500 via-quantum-600 to-quantum-700 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-neural {
+    @apply bg-gradient-to-r from-neural-500 via-neural-600 to-neural-700 bg-clip-text text-transparent;
+  }
+
+  /* Glow effects */
+  .glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+
+  .glow-axiom {
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+  }
+
+  .glow-genesis {
+    box-shadow: 0 0 20px rgba(217, 70, 239, 0.5);
+  }
+
+  .glow-quantum {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+  }
+
+  .glow-neural {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+  }
+
+  /* Interactive elements */
+  .interactive {
+    @apply transition-all duration-300 ease-out;
+    @apply hover:scale-105 hover:shadow-lg;
+    @apply active:scale-95;
+    @apply cursor-pointer;
+  }
+
+  .interactive-subtle {
+    @apply transition-all duration-200 ease-out;
+    @apply hover:bg-muted/50;
+    @apply active:bg-muted;
+    @apply cursor-pointer;
+  }
+
+  /* Patent card styles */
+  .patent-card {
+    @apply relative overflow-hidden rounded-xl p-6;
+    @apply bg-gradient-to-br from-card to-card/50;
+    @apply border border-border/50;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:shadow-xl hover:border-axiom-500/50;
+    @apply group cursor-pointer;
+  }
+
+  .patent-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-axiom-500/5 to-genesis-500/5;
+    @apply opacity-0 transition-opacity duration-300;
+  }
+
+  .patent-card:hover::before {
+    @apply opacity-100;
+  }
+
+  /* ROI indicator styles */
+  .roi-indicator {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full;
+    @apply bg-quantum-500/10 text-quantum-700 dark:text-quantum-300;
+    @apply border border-quantum-500/20;
+    @apply font-medium text-sm;
+  }
+
+  /* Network visualization styles */
+  .network-node {
+    @apply relative rounded-full;
+    @apply bg-gradient-radial from-axiom-400/20 to-transparent;
+    @apply border-2 border-axiom-500;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:scale-110 hover:border-axiom-400;
+    @apply cursor-pointer;
+  }
+
+  .network-connection {
+    @apply stroke-axiom-500/30 stroke-2;
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .network-connection:hover {
+    @apply stroke-axiom-400 stroke-3;
+  }
+
+  /* Data visualization styles */
+  .chart-container {
+    @apply relative w-full h-full;
+    @apply bg-gradient-to-br from-card/50 to-transparent;
+    @apply rounded-lg border border-border/30;
+    @apply overflow-hidden;
+  }
+
+  .metric-card {
+    @apply relative p-6 rounded-xl;
+    @apply bg-gradient-to-br from-card to-card/80;
+    @apply border border-border/50;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:shadow-lg hover:border-border;
+  }
+
+  /* Loading states */
+  .loading-shimmer {
+    @apply relative overflow-hidden bg-muted/50 rounded;
+  }
+
+  .loading-shimmer::before {
+    content: '';
+    @apply absolute inset-0;
+    @apply bg-gradient-to-r from-transparent via-background/50 to-transparent;
+    @apply animate-shimmer;
+  }
+
+  /* Status indicators */
+  .status-operational {
+    @apply bg-quantum-500/20 text-quantum-700 dark:text-quantum-300;
+    @apply border-quantum-500/30;
+  }
+
+  .status-warning {
+    @apply bg-neural-500/20 text-neural-700 dark:text-neural-300;
+    @apply border-neural-500/30;
+  }
+
+  .status-critical {
+    @apply bg-red-500/20 text-red-700 dark:text-red-300;
+    @apply border-red-500/30;
+  }
+
+  /* Layout utilities */
+  .container-showcase {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl;
+  }
+
+  .section-spacing {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  .grid-showcase {
+    @apply grid gap-6 md:gap-8 lg:gap-10;
+  }
+
+  /* Typography utilities */
+  .heading-display {
+    @apply font-display font-bold tracking-tight;
+    @apply bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-transparent;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+}
+
+/* Utility Layer */
+@layer utilities {
+  /* 3D utilities */
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  /* Custom animations */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-glow-pulse {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-gradient-x {
+    animation: gradient-x 3s ease infinite;
+    background-size: 200% 200%;
+  }
+
+  /* Responsive utilities */
+  .responsive-text {
+    @apply text-sm sm:text-base md:text-lg lg:text-xl;
+  }
+
+  .responsive-heading {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+  }
+
+  /* Safe area utilities (for mobile notches, etc.) */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    @apply text-black bg-white;
+  }
+
+  .glass,
+  .glass-intense {
+    @apply bg-white border-gray-300;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .glass,
+  .glass-intense {
+    @apply bg-background border-foreground/20;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .text-gradient,
+  .text-gradient-axiom,
+  .text-gradient-quantum,
+  .text-gradient-neural {
+    @apply bg-foreground bg-clip-text text-transparent;
+  }
+} 

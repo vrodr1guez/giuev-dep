@@ -1,0 +1,35 @@
+# Advanced Security Features Dependencies
+# GIU EV Charging Infrastructure - Phase 2 Enhancement
+
+# Core ML and Security Dependencies
+scikit-learn>=1.3.0
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Distributed Tracing (OpenTelemetry)
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-instrumentation-fastapi>=0.41b0
+opentelemetry-instrumentation-requests>=0.41b0
+opentelemetry-instrumentation-sqlalchemy>=0.41b0
+opentelemetry-instrumentation-redis>=0.41b0
+opentelemetry-exporter-jaeger-thrift>=1.20.0
+opentelemetry-propagator-b3>=1.20.0
+
+# Performance and Monitoring
+redis>=4.5.0
+prometheus-client>=0.17.0
+structlog>=23.1.0
+slowapi>=0.1.9
+
+# Security and Validation
+bleach>=6.0.0
+circuit-breaker>=1.4.0
+
+# Optional but Recommended
+psutil>=5.9.0
+requests>=2.31.0
+
+# Development and Testing
+pytest>=7.4.0  # For advanced testing
+pytest-asyncio>=0.21.0  # For async test support 
