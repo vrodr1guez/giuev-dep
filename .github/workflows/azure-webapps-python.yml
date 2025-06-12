@@ -95,4 +95,3 @@ jobs:
           echo "📊 ML models included: ✅"
           echo "🔧 FastAPI backend: ✅" 
           echo "🌐 Frontend assets: ✅"
-EOF
