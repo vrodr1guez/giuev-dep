@@ -42,6 +42,7 @@ jobs:
     
     - name: Run tests
       env:
+        PYTHONPATH: .
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
         SECRET_KEY: ${{ secrets.SECRET_KEY || 'testsecretkey' }}
       run: |
