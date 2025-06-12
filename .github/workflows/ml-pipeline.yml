@@ -62,7 +62,7 @@ jobs:
           python -m pytest app/ml/testing/ -v --junitxml=test-results/junit.xml --cov=app/ml --cov-report=xml
       
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: test-results/
@@ -283,7 +283,7 @@ jobs:
           EOF
       
       - name: Upload trained models
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: trained-models
           path: app/ml/models/
@@ -310,7 +310,7 @@ jobs:
           pip install -r requirements-ml.txt
       
       - name: Download trained models
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: trained-models
           path: app/ml/models/
@@ -465,7 +465,7 @@ jobs:
           EOF
       
       - name: Upload evaluation results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: model-evaluation-results
           path: evaluation-results/
@@ -494,7 +494,7 @@ jobs:
           pip install boto3  # For S3 deployment
       
       - name: Download trained models
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: trained-models
           path: app/ml/models/
@@ -532,7 +532,7 @@ jobs:
           ls -la models-to-deploy/
       
       - name: Upload deployable models
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployable-models
           path: models-to-deploy/ 
